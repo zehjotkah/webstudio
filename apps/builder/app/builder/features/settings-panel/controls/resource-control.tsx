@@ -19,7 +19,13 @@ import {
   NestedInputButton,
   theme,
 } from "@webstudio-is/design-system";
-import { isLiteralExpression, Resource, type Prop } from "@webstudio-is/sdk";
+import {
+  isLiteralExpression,
+  Resource,
+  type Prop,
+  type Instance,
+  findTreeInstanceIds,
+} from "@webstudio-is/sdk";
 import {
   BindingControl,
   BindingPopover,
@@ -30,6 +36,7 @@ import {
   $props,
   $resources,
   $variableValuesByInstanceSelector,
+  $instances,
 } from "~/shared/nano-states";
 import { computeExpression } from "~/shared/data-variables";
 import { updateWebstudioData } from "~/shared/instance-utils";
@@ -42,7 +49,10 @@ import {
   UrlField,
   MethodField,
   Headers,
+  BodyField,
   parseResource,
+  parseHeaders,
+  isContentType,
   getResourceScopeForInstance,
 } from "../resource-panel";
 import { type ControlProps, useLocalValue, VerticalLayout } from "../shared";
@@ -86,28 +96,105 @@ const ResourceButton = forwardRef<
 });
 ResourceButton.displayName = "ResourceButton";
 
+const FORM_INPUT_COMPONENTS = new Set([
+  "Input",
+  "Textarea",
+  "Select",
+  "Checkbox",
+  "Radio",
+  "RadioButton",
+]);
+
+import { encodeDataSourceVariable } from "@webstudio-is/sdk";
+
+const getFormVariables = (
+  instanceId: string,
+  instances: Map<string, Instance>,
+  props: Map<string, Prop>
+) => {
+  const descendantIds = findTreeInstanceIds(instances, instanceId);
+
+  // Map instanceId to name prop value
+  const instanceNames = new Map<string, string>();
+  for (const prop of props.values()) {
+    if (
+      descendantIds.has(prop.instanceId) &&
+      prop.name === "name" &&
+      prop.type === "string" &&
+      prop.value
+    ) {
+      instanceNames.set(prop.instanceId, prop.value);
+    }
+  }
+
+  if (instanceNames.size === 0) {
+    return new Map<string, unknown>();
+  }
+
+  const formData: Record<string, string> = {};
+  for (const name of instanceNames.values()) {
+    formData[name] = "";
+  }
+
+  const variables = new Map<string, unknown>();
+  const encodedName = encodeDataSourceVariable("formData");
+  variables.set(encodedName, formData);
+
+  return variables;
+};
+
 const $selectedInstanceResourceScope = computed(
   [
     $selectedPage,
     $selectedInstanceKeyWithRoot,
     $variableValuesByInstanceSelector,
     $dataSources,
+    $instances,
+    $props,
   ],
-  (page, instanceKey, variableValuesByInstanceSelector, dataSources) => {
-    return getResourceScopeForInstance({
+  (
+    page,
+    instanceKey,
+    variableValuesByInstanceSelector,
+    dataSources,
+    instances,
+    props
+  ) => {
+    const { scope, aliases, variableValues } = getResourceScopeForInstance({
       page,
       instanceKey,
       dataSources,
       variableValuesByInstanceSelector,
     });
+
+    if (instanceKey) {
+      try {
+        const [instanceId] = JSON.parse(instanceKey);
+        const formVariables = getFormVariables(instanceId, instances, props);
+        for (const [encodedName, value] of formVariables) {
+          scope[encodedName] = value;
+          aliases.set(encodedName, "formData");
+          // We don't add to variableValues because it's not a data source variable
+        }
+      } catch {
+        // ignore invalid key
+      }
+    }
+
+    return { scope, aliases, variableValues };
   }
 );
 
 const ResourceForm = ({ resource }: { resource: Resource }) => {
   const { scope, aliases } = useStore($selectedInstanceResourceScope);
+  const parsedHeaders = parseHeaders(resource.headers);
   const [url, setUrl] = useState(resource.url);
   const [method, setMethod] = useState<Resource["method"]>(resource.method);
-  const [headers, setHeaders] = useState<Resource["headers"]>(resource.headers);
+  const [headers, setHeaders] = useState<Resource["headers"]>(
+    parsedHeaders.headers
+  );
+  const [bodyType, setBodyType] = useState(parsedHeaders.bodyType);
+  const [body, setBody] = useState(resource.body);
   return (
     <Flex
       direction="column"
@@ -140,8 +227,31 @@ const ResourceForm = ({ resource }: { resource: Resource }) => {
         scope={scope}
         aliases={aliases}
         headers={headers}
-        onChange={setHeaders}
+        onChange={(newHeaders) => {
+          if (newHeaders.some(({ name }) => isContentType(name))) {
+            setBodyType(undefined);
+          }
+          setHeaders(newHeaders);
+        }}
       />
+      {method !== "get" && (
+        <BodyField
+          scope={scope}
+          aliases={aliases}
+          value={body ?? ""}
+          bodyType={bodyType}
+          onChange={(newBody, newBodyType) => {
+            setBodyType(newBodyType);
+            // reset header
+            if (newBodyType) {
+              setHeaders((headers) =>
+                headers.filter(({ name }) => !isContentType(name))
+              );
+            }
+            setBody(newBody);
+          }}
+        />
+      )}
     </Flex>
   );
 };

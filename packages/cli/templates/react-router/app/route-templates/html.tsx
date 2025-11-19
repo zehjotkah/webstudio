@@ -228,7 +228,10 @@ export const action = async ({
     const resourceName = formData.get(formIdFieldName);
     let resource =
       typeof resourceName === "string"
-        ? getResources({ system }).action.get(resourceName)
+        ? getResources({
+            system,
+            formData: Object.fromEntries(formData),
+          }).action.get(resourceName)
         : undefined;
 
     const formBotValue = formData.get(formBotFieldName);
@@ -253,7 +256,7 @@ export const action = async ({
     formData.delete(formBotFieldName);
 
     if (resource) {
-      resource.body = Object.fromEntries(formData);
+      // resource.body is already populated with the template by getResources
     } else {
       if (contactEmail === undefined) {
         throw new Error("Contact email not found");

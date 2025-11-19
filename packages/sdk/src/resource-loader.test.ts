@@ -156,4 +156,27 @@ describe("loadResource", () => {
       ]),
     });
   });
+  test("should fetch resource with body", async () => {
+    const mockResponse = new Response(JSON.stringify({ key: "value" }), {
+      status: 200,
+    });
+    mockFetch.mockResolvedValue(mockResponse);
+
+    const resourceRequest: ResourceRequest = {
+      name: "resource",
+      url: "https://example.com/resource",
+      searchParams: [],
+      method: "post",
+      headers: [],
+      body: { some: "data" },
+    };
+
+    await loadResource(mockFetch, resourceRequest);
+
+    expect(mockFetch).toHaveBeenCalledWith("https://example.com/resource", {
+      method: "post",
+      headers: new Headers(),
+      body: '{"some":"data"}',
+    });
+  });
 });

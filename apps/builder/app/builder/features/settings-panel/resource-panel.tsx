@@ -673,7 +673,7 @@ const toMime = (bodyType: BodyType) => {
   }
 };
 
-const BodyField = ({
+export const BodyField = ({
   scope,
   aliases,
   bodyType,
@@ -794,9 +794,10 @@ const BodyField = ({
 };
 
 const isCacheControl = (name: string) => name.toLowerCase() === "cache-control";
-const isContentType = (name: string) => name.toLowerCase() === "content-type";
+export const isContentType = (name: string) =>
+  name.toLowerCase() === "content-type";
 
-const parseHeaders = (headers: Resource["headers"]) => {
+export const parseHeaders = (headers: Resource["headers"]) => {
   let maxAge: undefined | string;
   let bodyType: BodyType;
   const newHeaders = headers.filter((header) => {

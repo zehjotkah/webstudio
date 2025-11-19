@@ -44,7 +44,7 @@ test("generate resources loader", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const resourceName: ResourceRequest = {
         name: "resourceName",
         url: "https://my-json.com",
@@ -109,7 +109,7 @@ test("generate variable and use in resources loader", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       let AccessToken = "my-token"
       const resourceName: ResourceRequest = {
         name: "resourceName",
@@ -171,7 +171,7 @@ test("generate page system variable and use in resources loader", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const system = _props.system
       const resourceName: ResourceRequest = {
         name: "resourceName",
@@ -215,7 +215,7 @@ test("generate global system variable and use in resources loader", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const system = _props.system
       const MyResource: ResourceRequest = {
         name: "My Resource",
@@ -251,7 +251,7 @@ test("generate empty resources loader", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const _data = new Map<string, ResourceRequest>([
       ])
       const _action = new Map<string, ResourceRequest>([
@@ -302,7 +302,7 @@ test("generate resource loader with search params", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       let term = "my-term"
       const resourceName: ResourceRequest = {
         name: "resourceName",
@@ -344,7 +344,7 @@ test("prevent generating unused variables", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const _data = new Map<string, ResourceRequest>([
       ])
       const _action = new Map<string, ResourceRequest>([
@@ -376,7 +376,7 @@ test("prevent generating unused system variable", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const _data = new Map<string, ResourceRequest>([
       ])
       const _action = new Map<string, ResourceRequest>([
@@ -417,7 +417,7 @@ test("generate action resource", () => {
     })
   ).toMatchInlineSnapshot(`
     "import type { System, ResourceRequest } from "@webstudio-is/sdk";
-    export const getResources = (_props: { system: System }) => {
+    export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {
       const resourceName: ResourceRequest = {
         name: "resourceName",
         url: "https://my-url.com",

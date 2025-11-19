@@ -1,4 +1,4 @@
-import type { DataSources } from "./schema/data-sources";
+import type { DataSources, DataSource } from "./schema/data-sources";
 import type { Page } from "./schema/pages";
 import type { Resources } from "./schema/resources";
 import type { Props } from "./schema/props";
@@ -21,6 +21,19 @@ export const generateResources = ({
 }) => {
   const usedDataSources: DataSources = new Map();
 
+  // Add formData to data sources to support it in expressions
+  const formDataId = "formData";
+  const formDataDataSource: DataSource = {
+    type: "variable",
+    id: formDataId,
+    name: "formData",
+    value: { type: "json", value: {} },
+  };
+  // We need to clone dataSources to avoid mutating the original map
+  // and to add formData only for this generation context
+  const localDataSources = new Map(dataSources);
+  localDataSources.set(formDataId, formDataDataSource);
+
   let generatedRequests = "";
   for (const resource of resources.values()) {
     let generatedRequest = "";
@@ -30,7 +43,7 @@ export const generateResources = ({
     generatedRequest += `    name: ${JSON.stringify(resource.name)},\n`;
     const url = generateExpression({
       expression: resource.url,
-      dataSources,
+      dataSources: localDataSources,
       usedDataSources,
       scope,
     });
@@ -39,7 +52,7 @@ export const generateResources = ({
     for (const searchParam of resource.searchParams ?? []) {
       const value = generateExpression({
         expression: searchParam.value,
-        dataSources,
+        dataSources: localDataSources,
         usedDataSources,
         scope,
       });
@@ -51,7 +64,7 @@ export const generateResources = ({
     for (const header of resource.headers) {
       const value = generateExpression({
         expression: header.value,
-        dataSources,
+        dataSources: localDataSources,
         usedDataSources,
         scope,
       });
@@ -62,7 +75,7 @@ export const generateResources = ({
     if (resource.body !== undefined && resource.body.length > 0) {
       const body = generateExpression({
         expression: resource.body,
-        dataSources,
+        dataSources: localDataSources,
         usedDataSources,
         scope,
       });
@@ -76,6 +89,11 @@ export const generateResources = ({
   for (const dataSource of usedDataSources.values()) {
     if (dataSource.type === "variable") {
       const name = scope.getName(dataSource.id, dataSource.name);
+      // formData is passed as argument
+      if (dataSource.id === formDataId) {
+        generatedVariables += `  const ${name} = _props.formData ?? {}\n`;
+        continue;
+      }
       const value = JSON.stringify(dataSource.value.value);
       generatedVariables += `  let ${name} = ${value}\n`;
     }
@@ -94,7 +112,7 @@ export const generateResources = ({
 
   let generated = "";
   generated += `import type { System, ResourceRequest } from "@webstudio-is/sdk";\n`;
-  generated += `export const getResources = (_props: { system: System }) => {\n`;
+  generated += `export const getResources = (_props: { system: System; formData?: Record<string, unknown> }) => {\n`;
   generated += generatedVariables;
   generated += generatedRequests;
 
